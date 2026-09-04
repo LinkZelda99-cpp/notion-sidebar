@@ -1,0 +1,16 @@
+name = "notion-sidebar-auth"
+main = "src/index.js"
+workers_dev = true
+compatibility_date = "2026-09-04"
+
+[durable_objects]
+bindings = [
+  { name = "OAUTH_TRANSACTIONS", class_name = "OAuthTransaction" }
+]
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["OAuthTransaction"]
+
+[vars]
+NOTION_CLIENT_ID = "3d1d872b-594c-8197-b019-00378bd32fc3"

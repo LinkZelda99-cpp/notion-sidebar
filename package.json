@@ -2,6 +2,7 @@
   "name": "notion-sidebar",
   "displayName": "Notion Sidebar",
   "description": "Notion workspace inside VS Code",
+  "publisher": "linkzelda99-cpp",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.136.0"
@@ -30,7 +31,25 @@
           "icon": "media/notion.svg"
         }
       ]
-    }
+    },
+    "commands": [
+      {
+        "command": "notion-sidebar.signIn",
+        "title": "Notion: Sign In"
+      },
+      {
+        "command": "notion-sidebar.signOut",
+        "title": "Notion: Sign Out"
+      },
+      {
+        "command": "notion-sidebar.openNotion",
+        "title": "Notion: Open in Browser"
+      },
+      {
+        "command": "notion-sidebar.refresh",
+        "title": "Notion: Refresh"
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "npm run package",

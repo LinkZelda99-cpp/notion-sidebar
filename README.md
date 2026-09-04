@@ -1,8 +1,15 @@
-# notion-sidebar README
+# Notion Sidebar
+
+Browse a connected Notion workspace from a VS Code sidebar. The extension uses Notion OAuth for per-user access, keeps credentials in VS Code SecretStorage, searches through the Notion API, and stores favorites in VS Code global state.
 
 This is the README for your extension "notion-sidebar". After writing up a brief description, we recommend including the following sections.
 
 ## Features
+
+- Sign in and sign out with Notion OAuth 2.0.
+- Search shared pages through the official Notion API SDK.
+- Persist and open local favorites.
+- Open pages in the browser and open Notion Calendar externally.
 
 Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
 
@@ -11,6 +18,18 @@ For example if there is an image subfolder under your extension project workspac
 \!\[feature X\]\(images/feature-x.png\)
 
 > Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+
+## Setup
+
+Create a public connection in the Notion developer portal and configure its redirect URI as:
+
+`https://linkzelda99-cpp.notion-sidebar/auth/callback`
+
+The extension uses the deployed OAuth backend automatically. For development overrides, optionally set this environment variable before launching VS Code:
+
+- `NOTION_AUTH_SERVICE_URL`
+
+Never commit the client secret or paste it into source control or chat. The extension communicates with the callback service and stores redeemed credentials in VS Code SecretStorage; the client secret remains in the Worker secret manager.
 
 ## Requirements
 
@@ -28,6 +47,8 @@ This extension contributes the following settings:
 * `myExtension.thing`: Set to `blah` to do something.
 
 ## Known Issues
+
+Notion Calendar is opened at its official web application because the Notion API does not expose a generic Notion Calendar event API. Desktop deep links are intentionally not assumed across operating systems.
 
 Calling out known issues can help limit users opening duplicate issues against your extension.
 
