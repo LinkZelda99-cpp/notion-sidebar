@@ -38,7 +38,7 @@ export class NotionViewProvider implements vscode.WebviewViewProvider {
 		});
 	}
 
-	private async handleMessage(message: { command?: string; query?: string; id?: string; url?: string; settings?: Record<string, boolean> }): Promise<void> {
+	private async handleMessage(message: { command?: string; query?: string; id?: string; url?: string; settings?: Record<string, boolean>; page?: { id: string; title: string; blocks: import('./notionClient').PageContentBlock[] }; blockType?: import('./notionClient').PageContentBlock['type']; text?: string }): Promise<void> {
 		try {
 			switch (message.command) {
 				case 'signIn':
@@ -64,6 +64,16 @@ export class NotionViewProvider implements vscode.WebviewViewProvider {
 					break;
 				case 'fullView':
 					await this.openFullView(message.id);
+					break;
+				case 'savePage':
+					if (message.page) {
+						await this.savePage(message.page);
+					}
+					break;
+				case 'addBlock':
+					if (message.id && message.blockType) {
+						await this.addBlock(message.id, message.blockType, message.text ?? '');
+					}
 					break;
 				case 'back':
 					this.view?.webview.postMessage({ type: 'back' });
@@ -149,15 +159,57 @@ export class NotionViewProvider implements vscode.WebviewViewProvider {
 		if (!this.notionClient || !pageId) {
 			throw new Error('This Notion page does not have a usable page ID.');
 		}
-		const page = await this.withTokenRefresh(() => this.notionClient!.getPage(pageId));
-		const blocks = await this.withTokenRefresh(() => this.notionClient!.getPageContent(pageId));
-		const panel = vscode.window.createWebviewPanel('notion-sidebar.page', this.getTitle(page), vscode.ViewColumn.Active, { enableScripts: true });
+		const panel = vscode.window.createWebviewPanel('notion-sidebar.page', 'Notion Page', vscode.ViewColumn.Active, { enableScripts: true });
+		const renderPanel = async (): Promise<void> => {
+			const page = await this.withTokenRefresh(() => this.notionClient!.getPage(pageId));
+			const blocks = await this.withTokenRefresh(() => this.notionClient!.getPageContent(pageId));
+			panel.title = this.getTitle(page);
+			panel.webview.html = getFullPageHtml({ id: page.id, title: this.getTitle(page), url: this.getPageUrl(page.id, page.url), blocks });
+		};
 		panel.webview.onDidReceiveMessage(async message => {
-			if (message.command === 'open' && typeof message.url === 'string') {
-				await this.openNotionPage(page.id, message.url);
+			try {
+				if (message.command === 'open' && typeof message.url === 'string') {
+					await this.openNotionPage(pageId, message.url);
+				} else if (message.command === 'savePage' && message.page) {
+					await this.savePage(message.page, false);
+					await renderPanel();
+				} else if (message.command === 'addBlock' && message.blockType) {
+					await this.addBlock(pageId, message.blockType, message.text ?? '', false);
+					await renderPanel();
+				}
+			} catch (error) {
+				panel.webview.postMessage({ type: 'error', message: error instanceof Error ? error.message : 'Could not save this page.' });
 			}
 		}, undefined, this.context.subscriptions);
-		panel.webview.html = getFullPageHtml({ id: page.id, title: this.getTitle(page), url: this.getPageUrl(page.id, page.url), blocks });
+		await renderPanel();
+	}
+
+	private async savePage(draft: { id: string; title: string; blocks: import('./notionClient').PageContentBlock[] }, notifySidebar = true): Promise<void> {
+		if (!this.notionClient) {
+			throw new Error('Sign in with Notion before editing.');
+		}
+		const page = await this.withTokenRefresh(() => this.notionClient!.getPage(draft.id));
+		if (draft.title.trim() !== this.getTitle(page)) {
+			await this.withTokenRefresh(() => this.notionClient!.updatePageTitle(page, draft.title.trim()));
+		}
+		for (const block of draft.blocks) {
+			if (['paragraph', 'heading_1', 'heading_2', 'bulleted_list_item', 'to_do'].includes(block.type)) {
+				await this.withTokenRefresh(() => this.notionClient!.updateBlock(block));
+			}
+		}
+		if (notifySidebar) {
+			await this.openPage(draft.id);
+		}
+	}
+
+	private async addBlock(pageId: string, blockType: import('./notionClient').PageContentBlock['type'], text: string, notifySidebar = true): Promise<void> {
+		if (!this.notionClient || !['paragraph', 'heading_1', 'heading_2', 'bulleted_list_item', 'to_do'].includes(blockType)) {
+			throw new Error('This block type cannot be added.');
+		}
+		await this.withTokenRefresh(() => this.notionClient!.appendBlock(pageId, { type: blockType, text }));
+		if (notifySidebar) {
+			await this.openPage(pageId);
+		}
 	}
 
 	async signOut(): Promise<void> {

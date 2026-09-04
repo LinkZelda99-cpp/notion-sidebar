@@ -12,6 +12,7 @@ export interface PageSummary {
 }
 
 export interface PageContentBlock {
+	id: string;
 	type: 'paragraph' | 'heading_1' | 'heading_2' | 'heading_3' | 'bulleted_list_item' | 'numbered_list_item' | 'to_do' | 'quote' | 'code' | 'divider' | 'child_page';
 	text?: string;
 	checked?: boolean;
@@ -65,6 +66,33 @@ export class NotionClient {
 		return response.results.flatMap(block => this.toContentBlock(block as BlockObjectResponse));
 	}
 
+	async updatePageTitle(page: NotionPage, title: string): Promise<void> {
+		const titleProperty = Object.entries(page.properties ?? {}).find(([, property]) => property.type === 'title');
+		if (!titleProperty) {
+			throw new Error('This page does not expose an editable title.');
+		}
+		await this.client.pages.update({
+			page_id: page.id,
+			properties: { [titleProperty[0]]: { title: [{ type: 'text', text: { content: title } }] } },
+		} as Parameters<typeof this.client.pages.update>[0]);
+	}
+
+	async updateBlock(block: PageContentBlock): Promise<void> {
+		const richText = [{ type: 'text', text: { content: block.text ?? '' } }];
+		const body = block.type === 'to_do'
+			? { to_do: { rich_text: richText, checked: block.checked ?? false } }
+			: { [block.type]: { rich_text: richText } };
+		await this.client.blocks.update({ block_id: block.id, ...body } as Parameters<typeof this.client.blocks.update>[0]);
+	}
+
+	async appendBlock(pageId: string, block: Pick<PageContentBlock, 'type' | 'text'>): Promise<void> {
+		const richText = [{ type: 'text', text: { content: block.text ?? '' } }];
+		const body = block.type === 'to_do'
+			? { object: 'block', type: 'to_do', to_do: { rich_text: richText, checked: false } }
+			: { object: 'block', type: block.type, [block.type]: { rich_text: richText } };
+		await this.client.blocks.children.append({ block_id: pageId, children: [body] } as Parameters<typeof this.client.blocks.children.append>[0]);
+	}
+
 	async getDataSource(dataSourceId: string): Promise<unknown> {
 		return await this.client.dataSources.retrieve({ data_source_id: dataSourceId });
 	}
@@ -107,15 +135,16 @@ export class NotionClient {
 		const type = block.type as PageContentBlock['type'];
 		const content = block[block.type as keyof BlockObjectResponse] as { rich_text?: Array<{ plain_text?: string }>; checked?: boolean; language?: string; title?: string } | undefined;
 		if (block.type === 'divider') {
-			return [{ type: 'divider' }];
+			return [{ id: block.id, type: 'divider' }];
 		}
 		if (block.type === 'child_page') {
-			return [{ type: 'child_page', text: content?.title || 'Untitled page', pageId: block.id }];
+			return [{ id: block.id, type: 'child_page', text: content?.title || 'Untitled page', pageId: block.id }];
 		}
 		if (!content) {
 			return [];
 		}
 		return [{
+			id: block.id,
 			type,
 			text: content.rich_text?.map(item => item.plain_text ?? '').join('') ?? '',
 			checked: content.checked,
