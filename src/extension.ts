@@ -3,6 +3,7 @@ import { NotionAuth } from './auth';
 import { FavoritesStore } from './favorites';
 import { NotionClient, PageSummary } from './notionClient';
 import { RecentsStore } from './recents';
+import { getFullPageHtml } from './pageRenderer';
 import { getSidebarHtml, SidebarState } from './webview';
 
 export class NotionViewProvider implements vscode.WebviewViewProvider {
@@ -60,6 +61,9 @@ export class NotionViewProvider implements vscode.WebviewViewProvider {
 					break;
 				case 'openInNotion':
 					await this.openNotionPage(message.id, message.url);
+					break;
+				case 'fullView':
+					await this.openFullView(message.id);
 					break;
 				case 'back':
 					this.view?.webview.postMessage({ type: 'back' });
@@ -139,6 +143,21 @@ export class NotionViewProvider implements vscode.WebviewViewProvider {
 				blocks,
 			},
 		});
+	}
+
+	private async openFullView(pageId?: string): Promise<void> {
+		if (!this.notionClient || !pageId) {
+			throw new Error('This Notion page does not have a usable page ID.');
+		}
+		const page = await this.withTokenRefresh(() => this.notionClient!.getPage(pageId));
+		const blocks = await this.withTokenRefresh(() => this.notionClient!.getPageContent(pageId));
+		const panel = vscode.window.createWebviewPanel('notion-sidebar.page', this.getTitle(page), vscode.ViewColumn.Active, { enableScripts: true });
+		panel.webview.onDidReceiveMessage(async message => {
+			if (message.command === 'open' && typeof message.url === 'string') {
+				await this.openNotionPage(page.id, message.url);
+			}
+		}, undefined, this.context.subscriptions);
+		panel.webview.html = getFullPageHtml({ id: page.id, title: this.getTitle(page), url: this.getPageUrl(page.id, page.url), blocks });
 	}
 
 	async signOut(): Promise<void> {
