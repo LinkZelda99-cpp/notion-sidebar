@@ -20,6 +20,15 @@ export interface PageContentBlock {
 	pageId?: string;
 }
 
+export function normalizeChildPageBlock(block: { id: string; child_page: { title: string } }): PageContentBlock {
+	return {
+		id: block.id,
+		type: 'child_page',
+		text: block.child_page.title || 'Untitled page',
+		pageId: block.id,
+	};
+}
+
 interface NotionPage {
 	object: 'page';
 	id: string;
@@ -133,13 +142,13 @@ export class NotionClient {
 			return [];
 		}
 		const type = block.type as PageContentBlock['type'];
-		const content = block[block.type as keyof BlockObjectResponse] as { rich_text?: Array<{ plain_text?: string }>; checked?: boolean; language?: string; title?: string } | undefined;
 		if (block.type === 'divider') {
 			return [{ id: block.id, type: 'divider' }];
 		}
 		if (block.type === 'child_page') {
-			return [{ id: block.id, type: 'child_page', text: content?.title || 'Untitled page', pageId: block.id }];
+			return [normalizeChildPageBlock(block)];
 		}
+		const content = block[block.type as keyof BlockObjectResponse] as { rich_text?: Array<{ plain_text?: string }>; checked?: boolean; language?: string } | undefined;
 		if (!content) {
 			return [];
 		}

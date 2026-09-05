@@ -16,7 +16,7 @@ export function renderPageBlocks(blocks: PageContentBlock[]): string {
 		const text = escapeHtml(block.text ?? '');
 		switch (block.type) {
 			case 'divider': return '<hr>';
-			case 'child_page': return `<p><button class="child-page" disabled>▱ ${text}</button></p>`;
+			case 'child_page': return `<p><button class="child-page" data-open-id="${escapeHtml(block.pageId ?? block.id)}" onclick="vscode.postMessage({command: 'openPage', id: '${escapeHtml(block.pageId ?? block.id)}'})">▱ ${text}</button></p>`;
 			case 'code': return `<pre><code>${text}</code></pre>`;
 			case 'quote': return `<blockquote>${text}</blockquote>`;
 			case 'to_do': return `<p><input type="checkbox" disabled ${block.checked ? 'checked' : ''}> ${text}</p>`;

@@ -160,16 +160,20 @@ export class NotionViewProvider implements vscode.WebviewViewProvider {
 			throw new Error('This Notion page does not have a usable page ID.');
 		}
 		const panel = vscode.window.createWebviewPanel('notion-sidebar.page', 'Notion Page', vscode.ViewColumn.Active, { enableScripts: true });
+		let activePageId = pageId;
 		const renderPanel = async (): Promise<void> => {
-			const page = await this.withTokenRefresh(() => this.notionClient!.getPage(pageId));
-			const blocks = await this.withTokenRefresh(() => this.notionClient!.getPageContent(pageId));
+			const page = await this.withTokenRefresh(() => this.notionClient!.getPage(activePageId));
+			const blocks = await this.withTokenRefresh(() => this.notionClient!.getPageContent(activePageId));
 			panel.title = this.getTitle(page);
 			panel.webview.html = getFullPageHtml({ id: page.id, title: this.getTitle(page), url: this.getPageUrl(page.id, page.url), blocks });
 		};
 		panel.webview.onDidReceiveMessage(async message => {
 			try {
 				if (message.command === 'open' && typeof message.url === 'string') {
-					await this.openNotionPage(pageId, message.url);
+					await this.openNotionPage(activePageId, message.url);
+				} else if (message.command === 'openPage' && typeof message.id === 'string') {
+					activePageId = message.id;
+					await renderPanel();
 				} else if (message.command === 'savePage' && message.page) {
 					await this.savePage(message.page, false);
 					await renderPanel();
