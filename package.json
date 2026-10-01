@@ -3,11 +3,12 @@
   "displayName": "Notion Sidebar",
   "description": "Notion workspace inside VS Code",
   "publisher": "linkzelda99-cpp",
+  "icon": "media/extension-icon.png",
   "repository": {
     "type": "git",
     "url": "https://github.com/LinkZelda99-cpp/notion-sidebar.git"
   },
-  "version": "0.0.1",
+  "version": "0.1.1",
   "engines": {
     "vscode": "^1.136.0"
   },
