@@ -38,7 +38,7 @@ export class NotionViewProvider implements vscode.WebviewViewProvider {
 		});
 	}
 
-	private async handleMessage(message: { command?: string; query?: string; id?: string; url?: string; settings?: Record<string, boolean>; page?: { id: string; title: string; blocks: import('./notionClient').PageContentBlock[] }; blockType?: import('./notionClient').PageContentBlock['type']; text?: string }): Promise<void> {
+	private async handleMessage(message: { command?: string; query?: string; id?: string; url?: string; code?: string; language?: string; settings?: Record<string, boolean>; page?: { id: string; title: string; blocks: import('./notionClient').PageContentBlock[] }; blockType?: import('./notionClient').PageContentBlock['type']; text?: string }): Promise<void> {
 		try {
 			switch (message.command) {
 				case 'signIn':
@@ -86,6 +86,9 @@ export class NotionViewProvider implements vscode.WebviewViewProvider {
 					await this.context.globalState.update(this.settingsKey, message.settings);
 					await this.refresh();
 					break;
+				case 'openCode':
+					await this.openCodeInEditor(message.code ?? '', message.language ?? 'plaintext');
+					break;
 				case 'calendar':
 					await vscode.env.openExternal(vscode.Uri.parse('https://calendar.notion.so'));
 					break;
@@ -93,6 +96,22 @@ export class NotionViewProvider implements vscode.WebviewViewProvider {
 		} catch (error) {
 			this.postError(error instanceof Error ? error.message : 'The requested Notion action failed.');
 		}
+	}
+
+	private async openCodeInEditor(code: string, language: string): Promise<void> {
+		if (!code) {
+			throw new Error('This code block is empty.');
+		}
+		const document = await vscode.workspace.openTextDocument({ language: await this.resolveLanguage(language), content: code });
+		await vscode.window.showTextDocument(document, vscode.ViewColumn.Active, false);
+	}
+
+	private async resolveLanguage(language: string): Promise<string> {
+		const normalized = language.trim().toLowerCase().replaceAll('_', '-');
+		const aliases: Record<string, string> = { js: 'javascript', jsx: 'javascriptreact', ts: 'typescript', tsx: 'typescriptreact', py: 'python', md: 'markdown', yml: 'yaml', sh: 'shellscript', bash: 'shellscript', jsonc: 'json' };
+		const candidate = aliases[normalized] ?? normalized;
+		const languages = await vscode.languages.getLanguages();
+		return languages.includes(candidate) ? candidate : 'plaintext';
 	}
 
 	private async search(query: string): Promise<void> {
@@ -135,8 +154,10 @@ export class NotionViewProvider implements vscode.WebviewViewProvider {
 			throw new Error('This Notion page does not have a usable page ID.');
 		}
 		this.view?.webview.postMessage({ type: 'pageLoading' });
-		const page = await this.withTokenRefresh(() => this.notionClient!.getPage(pageId));
-		const blocks = await this.withTokenRefresh(() => this.notionClient!.getPageContent(pageId));
+		const [page, blocks] = await Promise.all([
+			this.withTokenRefresh(() => this.notionClient!.getPage(pageId)),
+			this.withTokenRefresh(() => this.notionClient!.getPageContent(pageId)),
+		]);
 		const summary: PageSummary = {
 			id: page.id,
 			title: this.getTitle(page),
@@ -162,8 +183,10 @@ export class NotionViewProvider implements vscode.WebviewViewProvider {
 		const panel = vscode.window.createWebviewPanel('notion-sidebar.page', 'Notion Page', vscode.ViewColumn.Active, { enableScripts: true });
 		let activePageId = pageId;
 		const renderPanel = async (): Promise<void> => {
-			const page = await this.withTokenRefresh(() => this.notionClient!.getPage(activePageId));
-			const blocks = await this.withTokenRefresh(() => this.notionClient!.getPageContent(activePageId));
+			const [page, blocks] = await Promise.all([
+				this.withTokenRefresh(() => this.notionClient!.getPage(activePageId)),
+				this.withTokenRefresh(() => this.notionClient!.getPageContent(activePageId)),
+			]);
 			panel.title = this.getTitle(page);
 			panel.webview.html = getFullPageHtml({ id: page.id, title: this.getTitle(page), url: this.getPageUrl(page.id, page.url), blocks });
 		};
@@ -178,7 +201,7 @@ export class NotionViewProvider implements vscode.WebviewViewProvider {
 					await this.savePage(message.page, false);
 					await renderPanel();
 				} else if (message.command === 'addBlock' && message.blockType) {
-					await this.addBlock(pageId, message.blockType, message.text ?? '', false);
+					await this.addBlock(activePageId, message.blockType, message.text ?? '', false);
 					await renderPanel();
 				}
 			} catch (error) {

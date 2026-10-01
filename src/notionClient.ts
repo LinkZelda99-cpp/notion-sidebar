@@ -13,11 +13,12 @@ export interface PageSummary {
 
 export interface PageContentBlock {
 	id: string;
-	type: 'paragraph' | 'heading_1' | 'heading_2' | 'heading_3' | 'bulleted_list_item' | 'numbered_list_item' | 'to_do' | 'quote' | 'code' | 'divider' | 'child_page';
+	type: string;
 	text?: string;
 	checked?: boolean;
 	language?: string;
 	pageId?: string;
+	url?: string;
 }
 
 export function normalizeChildPageBlock(block: { id: string; child_page: { title: string } }): PageContentBlock {
@@ -137,28 +138,58 @@ export class NotionClient {
 	}
 
 	private toContentBlock(block: BlockObjectResponse): PageContentBlock[] {
-		const supportedTypes: PageContentBlock['type'][] = ['paragraph', 'heading_1', 'heading_2', 'heading_3', 'bulleted_list_item', 'numbered_list_item', 'to_do', 'quote', 'code', 'divider', 'child_page'];
-		if (!supportedTypes.includes(block.type as PageContentBlock['type'])) {
-			return [];
-		}
-		const type = block.type as PageContentBlock['type'];
+		const type = block.type;
 		if (block.type === 'divider') {
 			return [{ id: block.id, type: 'divider' }];
 		}
 		if (block.type === 'child_page') {
 			return [normalizeChildPageBlock(block)];
 		}
-		const content = block[block.type as keyof BlockObjectResponse] as { rich_text?: Array<{ plain_text?: string }>; checked?: boolean; language?: string } | undefined;
+		const content = block[block.type as keyof BlockObjectResponse] as Record<string, unknown> | undefined;
 		if (!content) {
-			return [];
+			return [{ id: block.id, type, text: this.getBlockLabel(type) }];
 		}
 		return [{
 			id: block.id,
 			type,
-			text: content.rich_text?.map(item => item.plain_text ?? '').join('') ?? '',
-			checked: content.checked,
-			language: content.language,
+			text: this.getBlockText(content) || this.getBlockLabel(type),
+			checked: typeof content.checked === 'boolean' ? content.checked : undefined,
+			language: typeof content.language === 'string' ? content.language : undefined,
+			url: this.getBlockUrl(content),
 		}];
+	}
+
+	private getBlockText(content: Record<string, unknown>): string {
+		for (const key of ['rich_text', 'title', 'caption']) {
+			const value = content[key];
+			if (Array.isArray(value)) {
+				const text = value.map(item => typeof item === 'object' && item !== null && 'plain_text' in item && typeof item.plain_text === 'string' ? item.plain_text : '').join('');
+				if (text) {
+					return text;
+				}
+			}
+			if (typeof value === 'string' && value) {
+				return value;
+			}
+		}
+		return '';
+	}
+
+	private getBlockUrl(content: Record<string, unknown>): string | undefined {
+		if (typeof content.url === 'string') {
+			return content.url;
+		}
+		for (const key of ['external', 'file']) {
+			const value = content[key];
+			if (typeof value === 'object' && value !== null && 'url' in value && typeof value.url === 'string') {
+				return value.url;
+			}
+		}
+		return undefined;
+	}
+
+	private getBlockLabel(type: string): string {
+		return type.replaceAll('_', ' ');
 	}
 
 	private isNotionUrl(value: string | undefined): value is string {
