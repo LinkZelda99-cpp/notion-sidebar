@@ -19,7 +19,6 @@ on:
 
 permissions:
   contents: write
-  id-token: write
 
 jobs:
   release:
@@ -64,11 +63,11 @@ jobs:
 
           const path = 'CHANGELOG.md';
           const notes = process.env.RELEASE_NOTES
-            .split(/\\r?\\n/)
+            .split(/\r?\n/)
             .map(line => line.trim())
             .filter(Boolean)
             .map(line => line.startsWith('- ') ? line : `- ${line}`)
-            .join('\\n');
+            .join('\n');
 
           if (!notes) {
             throw new Error('Release notes cannot be empty.');
@@ -76,18 +75,18 @@ jobs:
 
           const changelog = fs.readFileSync(path, 'utf8');
           const date = new Date().toISOString().slice(0, 10);
-          const entry = `## [${process.env.VERSION}] - ${date}\\n\\n${notes}\\n\\n`;
+          const entry = `## [${process.env.VERSION}] - ${date}\n\n${notes}\n\n`;
 
-          const marker = '# Change Log\\n';
+          const marker = '# Change Log\n';
           if (!changelog.startsWith(marker)) {
             throw new Error('CHANGELOG.md does not start with the expected header.');
           }
 
-          fs.writeFileSync(path, changelog.replace(marker, marker + '\\n' + entry));
+          fs.writeFileSync(path, changelog.replace(marker, marker + '\n' + entry));
           NODE
 
       - name: Package VSIX
-        run: npx vsce package
+        run: npx @vscode/vsce@4.0.0 package
 
       - name: Verify release files
         run: |
@@ -95,9 +94,6 @@ jobs:
           grep -q "## [$VERSION]" CHANGELOG.md
           test "$(node -p "require('./package.json').version")" = "$VERSION"
           test "$(node -p "require('./package-lock.json').version")" = "$VERSION"
-
-      - name: Publish to Visual Studio Marketplace
-        run: npx @vscode/vsce@4.0.0 publish --oidc --packagePath "notion-sidebar-$VERSION.vsix"
 
       - name: Commit release
         run: |
@@ -120,7 +116,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RELEASE_NOTES: ${{ inputs.release_notes }}
         run: |
-          printf '%s\\n' "$RELEASE_NOTES" | sed 's/^/- /' > release-notes.md
+          printf '%s\n' "$RELEASE_NOTES" | sed 's/^/- /' > release-notes.md
           gh release create "v$VERSION" "notion-sidebar-$VERSION.vsix" \
             --title "Notion Sidebar v$VERSION" \
             --notes-file release-notes.md
