@@ -19,6 +19,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write
 
 jobs:
   release:
@@ -96,15 +97,7 @@ jobs:
           test "$(node -p "require('./package-lock.json').version")" = "$VERSION"
 
       - name: Publish to Visual Studio Marketplace
-        env:
-          VSCE_PAT: ${{ secrets.VSCE_PAT }}
-        run: |
-          if [ -z "$VSCE_PAT" ]; then
-            echo "::error::The VSCE_PAT GitHub secret is not configured."
-            exit 1
-          fi
-
-          npx vsce publish --packagePath "notion-sidebar-$VERSION.vsix"
+        run: npx @vscode/vsce@4.0.0 publish --oidc --packagePath "notion-sidebar-$VERSION.vsix"
 
       - name: Commit release
         run: |
