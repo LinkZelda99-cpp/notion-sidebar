@@ -1,28 +1,26 @@
 # Notion Sidebar
 
-A powerful Notion workspace inside Visual Studio Code.
+A Notion workspace inside Visual Studio Code.
 
-Notion Sidebar brings your Notion workspace directly into VS Code, so you can search, read, edit, and organize your Notion content without constantly switching between your editor and your browser.
+Notion Sidebar brings your Notion workspace into VS Code so you can search, read, edit, and manage pages without constantly switching to your browser.
 
 ## Features
 
 ### Notion Authentication
 
-Sign in securely with your Notion account using Notion OAuth.
+Sign in with your Notion account using Notion OAuth.
 
-Your credentials and tokens are stored securely using VS Code's SecretStorage, while the OAuth client secret remains on the server-side authentication service.
+Authentication credentials are stored using VS Code's SecretStorage. The Notion OAuth client secret is kept on the server-side authentication service and is not included in the extension.
 
 ### Search
 
-Search your Notion workspace directly from the VS Code Activity Bar.
-
-Find pages quickly without leaving your development environment.
+Search your Notion workspace directly from the Notion sidebar.
 
 ### Page Viewer
 
-Open Notion pages directly inside VS Code.
+Open and read Notion pages directly inside VS Code.
 
-Pages are rendered using the Notion API, allowing you to read your workspace without opening a separate browser window.
+Pages are rendered from the Notion API, so you can work with your workspace without opening a separate browser window.
 
 ### Page Editing
 
@@ -38,25 +36,27 @@ Currently supported content includes:
 - To-do blocks
 - Adding new blocks
 
-Changes are saved directly back to your Notion workspace.
+Changes are saved directly to your Notion workspace.
 
 ### Full View
 
-Open a Notion page in a dedicated VS Code editor tab.
-
-This gives you a larger workspace for reading and editing pages while keeping Notion available alongside your code.
+Open a page in a dedicated VS Code editor tab for a larger reading and editing experience.
 
 ### Favorites
 
-Save important Notion pages for quick access.
+Save important pages for quick access.
 
-Favorites are stored locally in VS Code and remain available between sessions.
+Favorites are stored locally in VS Code and persist between sessions.
 
 ### Recents
 
-Automatically keep track of recently opened pages.
+Keep track of recently opened pages.
 
-Recent pages are persisted locally and can be reopened directly from the sidebar.
+Recents are stored locally and can be reopened directly from the sidebar. The list keeps up to 20 recent pages.
+
+### Nested Pages
+
+Open nested Notion pages from the page viewer and navigate through your workspace from inside VS Code.
 
 ### Settings
 
@@ -71,11 +71,15 @@ Settings include:
 - External browser preferences
 - Extension information
 
+### Browser Integration
+
+Open a Notion page in your external browser when you want the full Notion experience.
+
 ## Getting Started
 
-1. Install **Notion Sidebar**.
+1. Install **Notion Sidebar** from the Visual Studio Code Marketplace.
 2. Open the Notion icon in the VS Code Activity Bar.
-3. Select **Sign in with Notion**.
+3. Select **Sign In**.
 4. Sign in to your Notion account if necessary.
 5. Authorize Notion Sidebar to access your workspace.
 6. Return to VS Code and start using your workspace.
@@ -86,13 +90,24 @@ You do not need to manually create a Notion integration or enter an API key.
 
 Notion Sidebar uses Notion's official API and OAuth authentication.
 
-The extension does not require users to enter or store a Notion API token manually.
+The extension does not require users to manually enter or store a Notion API token.
 
-OAuth authentication is handled through a server-side callback service so that the Notion OAuth client secret is never included in the extension.
+OAuth authentication is handled through a server-side callback service so the Notion OAuth client secret is never included in the extension.
 
-Authentication tokens are stored using VS Code's secure SecretStorage.
+Authentication credentials are stored using VS Code's secure SecretStorage.
 
-Notion Sidebar only requests the permissions necessary for the functionality provided by the extension.
+Notion Sidebar is an independent third-party extension and is not affiliated with Notion.
+
+## Commands
+
+Notion Sidebar provides the following VS Code commands:
+
+| Command | Description |
+| --- | --- |
+| `Notion: Sign In` | Sign in to Notion |
+| `Notion: Sign Out` | Sign out and clear stored authentication credentials |
+| `Notion: Open in Browser` | Open Notion in your external browser |
+| `Notion: Refresh` | Refresh the Notion sidebar |
 
 ## Development
 
@@ -126,10 +141,10 @@ npm test
 
 ### Package the extension
 
-The extension can be packaged as a VSIX using:
+The extension can be packaged as a VSIX using the VS Code extension packaging tool:
 
 ```bash
-npx vsce package
+npx @vscode/vsce@4.0.0 package
 ```
 
 ## Project Structure
@@ -158,7 +173,6 @@ Notion Sidebar is actively being developed.
 
 Planned features include:
 
-- [ ] Tasks and task-focused views
 - [ ] More complete Notion block editing
 - [ ] Create new pages
 - [ ] Create and edit database entries
@@ -183,4 +197,4 @@ Notion and the Notion logo are trademarks of Notion Labs, Inc.
 
 ## License
 
-See the repository's license for details.
+This project is licensed under the MIT License. See [LICENSE.md](LICENSE.md) for the full license text.
