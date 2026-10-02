@@ -189,6 +189,8 @@ Issues, suggestions, and contributions are welcome.
 
 If you find a bug or have an idea for a feature, please open an issue in the GitHub repository.
 
+Contributions are welcome, but redistribution and public release of the Software remain restricted by the license.
+
 ## Disclaimer
 
 Notion Sidebar is an independent third-party project and is not affiliated with, endorsed by, or sponsored by Notion Labs, Inc.
@@ -197,4 +199,6 @@ Notion and the Notion logo are trademarks of Notion Labs, Inc.
 
 ## License
 
-This project is licensed under the MIT License. See [LICENSE.md](LICENSE.md) for the full license text.
+Notion Sidebar is licensed under the **Notion Sidebar Source-Available License**. See [LICENSE.md](LICENSE.md) for the full license text.
+
+This is a source-available license, not an OSI-approved open-source license. The source is publicly available for inspection, learning, personal use, and contribution, while redistribution and public release require permission from the copyright holder.
